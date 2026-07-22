@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useLocation } from "react-router-dom"
 import { MoreVertical, ChevronUp, ChevronDown, Edit } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -28,6 +28,7 @@ export function ContactDataTable({
   cityFilter,
 }: ContactDataTableProps) {
   const navigate = useNavigate()
+  const location = useLocation()
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
   const [sortField, setSortField] = useState<SortField | null>(null)
@@ -189,7 +190,7 @@ export function ContactDataTable({
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem
-                          onClick={() => navigate(`/contact-data/${customer.id}`)}
+                          onClick={() => navigate(`${location.pathname}/${customer.id}`)}
                           className="cursor-pointer"
                         >
                           <Edit className="h-4 w-4 mr-2" />

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { useNavigate, useParams } from "react-router-dom"
+import { useNavigate, useParams, useLocation } from "react-router-dom"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,6 +13,9 @@ import { useToast } from "@/hooks/use-toast"
 export default function EditCustomerPage() {
   const navigate = useNavigate()
   const params = useParams()
+  const location = useLocation()
+  const listPath = location.pathname.split("/").slice(0, -1).join("/") || "/customers"
+  const isDataReviewCustomerData = location.pathname.startsWith("/data-review/customer-data")
   const { toast } = useToast()
   const [activeTab, setActiveTab] = useState(0)
   const [customer, setCustomer] = useState<Customer | null>(null)
@@ -64,24 +67,7 @@ export default function EditCustomerPage() {
         description: "The customer profile has been successfully verified.",
       })
 
-      navigate("/customers")
-    }
-  }
-
-  const handleShareAccess = () => {
-    const storedCustomers = localStorage.getItem("customers")
-    if (storedCustomers) {
-      const customers: Customer[] = JSON.parse(storedCustomers)
-      const updatedCustomers = customers.map((c) =>
-        c.id === params.id ? { ...c, ...formData, portalAccess: "Shared" as const } : c,
-      )
-      localStorage.setItem("customers", JSON.stringify(updatedCustomers))
-      setFormData((prev) => ({ ...prev, portalAccess: "Shared" as const }))
-
-      toast({
-        title: "Portal Access Shared",
-        description: "Login access has been successfully shared with the customer.",
-      })
+      navigate(listPath)
     }
   }
 
@@ -103,7 +89,7 @@ export default function EditCustomerPage() {
         <Button
           variant="ghost"
           className="text-gray-600 hover:text-[#E63946] hover:bg-[#E63946]/10"
-          onClick={() => navigate("/customers")}
+          onClick={() => navigate(listPath)}
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Customers
@@ -431,20 +417,13 @@ export default function EditCustomerPage() {
               )}
             </div>
             <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                onClick={handleShareAccess}
-                className="border-[#E63946] text-[#E63946] hover:bg-[#E63946]/10 bg-transparent"
-              >
-                Share Login Access
-              </Button>
               {activeTab < 2 ? (
                 <Button className="bg-[#E63946] hover:bg-[#c62e3a] text-white" onClick={handleVerifyNext}>
-                  Verify & Next
+                  {isDataReviewCustomerData ? "Save & Next" : "Next"}
                 </Button>
               ) : (
                 <Button className="bg-[#E63946] hover:bg-[#c62e3a] text-white" onClick={handleVerifySubmit}>
-                  Verify & Submit
+                  {isDataReviewCustomerData ? "Verify & Approve Profile" : "Save"}
                 </Button>
               )}
             </div>

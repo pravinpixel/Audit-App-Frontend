@@ -20,7 +20,7 @@ export const dummyEmployees: Employee[] = [
     email: "priya.sharma@safetymatters.com",
     department: "Operations",
     registrationType: "employee",
-    profileStatus: "Pending",
+    profileStatus: "Verified",
     appStatus: false,
   },
   {
@@ -42,7 +42,7 @@ export const dummyEmployees: Employee[] = [
     email: "sneha.reddy@safetymatters.com",
     department: "Audit & Compliance",
     registrationType: "employee",
-    profileStatus: "Rejected",
+    profileStatus: "Verified",
     appStatus: false,
   },
   {
@@ -53,7 +53,7 @@ export const dummyEmployees: Employee[] = [
     email: "vikram.singh@safetymatters.com",
     department: "Administration",
     registrationType: "employee",
-    profileStatus: "Pending",
+    profileStatus: "Verified",
     appStatus: true,
   },
   {

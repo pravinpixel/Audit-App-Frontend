@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useLocation } from "react-router-dom"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
@@ -17,6 +17,7 @@ interface ThirdPartyTableProps {
 
 export function ThirdPartyTable({ auditors, setAuditors, searchQuery, profileStatusFilter }: ThirdPartyTableProps) {
   const navigate = useNavigate()
+  const location = useLocation()
   const [sortColumn, setSortColumn] = useState<string>("")
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
   const [currentPage, setCurrentPage] = useState(1)
@@ -176,7 +177,7 @@ export function ThirdPartyTable({ auditors, setAuditors, searchQuery, profileSta
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem
-                          onClick={() => navigate(`/third-party/${auditor.id}`)}
+                          onClick={() => navigate(`${location.pathname}/${auditor.id}`)}
                           className="cursor-pointer"
                         >
                           <Edit className="h-4 w-4 mr-2" />

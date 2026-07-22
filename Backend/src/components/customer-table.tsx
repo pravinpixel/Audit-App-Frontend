@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useLocation } from "react-router-dom"
 import { MoreVertical, ChevronUp, ChevronDown, Edit, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -31,6 +31,7 @@ export function CustomerTable({
   cityFilter,
 }: CustomerTableProps) {
   const navigate = useNavigate()
+  const location = useLocation()
   const { toast } = useToast()
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
@@ -183,7 +184,6 @@ export function CustomerTable({
               >
                 City <SortIcon field="city" />
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Portal Access</th>
               <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Status</th>
               <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider">Actions</th>
             </tr>
@@ -197,15 +197,6 @@ export function CustomerTable({
                 <td className="px-4 py-3 text-sm text-gray-600">{customer.headOfficeLocation}</td>
                 <td className="px-4 py-3 text-sm text-gray-600">{customer.state}</td>
                 <td className="px-4 py-3 text-sm text-gray-600">{customer.city}</td>
-                <td className="px-4 py-3 text-sm">
-                  <span
-                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      customer.portalAccess === "Shared" ? "bg-blue-100 text-blue-800" : "bg-gray-100 text-gray-800"
-                    }`}
-                  >
-                    {customer.portalAccess || "Not Shared"}
-                  </span>
-                </td>
                 <td className="px-4 py-3 text-sm">
                   <span
                     className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
@@ -225,7 +216,7 @@ export function CustomerTable({
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem
-                          onClick={() => navigate(`/customers/${customer.id}`)}
+                          onClick={() => navigate(`${location.pathname}/${customer.id}`)}
                           className="cursor-pointer"
                         >
                           <Edit className="h-4 w-4 mr-2" />

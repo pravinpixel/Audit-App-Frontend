@@ -24,7 +24,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [isMasterExpanded, setIsMasterExpanded] = useState(pathname?.startsWith("/master"))
   const [isBannerExpanded, setIsBannerExpanded] = useState(pathname?.startsWith("/banner-management"))
   const [isEmployeeExpanded, setIsEmployeeExpanded] = useState(
-    pathname === "/dashboard" || pathname?.startsWith("/third-party"),
+    pathname === "/employee" || pathname?.startsWith("/third-party"),
   )
   const [isCustomerExpanded, setIsCustomerExpanded] = useState(
     pathname?.startsWith("/customers") || pathname?.startsWith("/contact-data"),
@@ -44,7 +44,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   ]
 
   const employeeItems = [
-    { icon: Users, label: "Employees", path: "/dashboard", active: pathname === "/dashboard" },
+    { icon: Users, label: "Employee", path: "/employee", active: pathname === "/employee" },
     {
       icon: UserCheck,
       label: "Data collector",

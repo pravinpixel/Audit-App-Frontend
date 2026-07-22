@@ -13,7 +13,7 @@ interface EmployeeTableProps {
   onEdit: (employee: Employee) => void
   onDelete: (employeeId: string) => void
   onToggleStatus: (employeeId: string) => void
-  onVerify: (employee: Employee) => void
+  onVerify?: (employee: Employee) => void
 }
 
 export function EmployeeTable({ employees, onEdit, onDelete, onToggleStatus, onVerify }: EmployeeTableProps) {
@@ -159,7 +159,7 @@ export function EmployeeTable({ employees, onEdit, onDelete, onToggleStatus, onV
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          {employee.profileStatus === "Pending" && (
+                          {onVerify && employee.profileStatus === "Pending" && (
                             <DropdownMenuItem
                               onClick={() => onVerify(employee)}
                               className="cursor-pointer text-green-600 focus:text-green-600"

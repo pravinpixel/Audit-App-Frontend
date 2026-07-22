@@ -105,12 +105,6 @@ export default function DataReviewEmployeesPage() {
     setEditingEmployee(null)
   }
 
-  const handleVerifyProfile = () => {
-    if (editingEmployee) {
-      handleSaveEmployee({ ...editingEmployee, profileStatus: "Verified" as const })
-    }
-  }
-
   const summaryCards = [
     {
       title: "Pending Employee Reviews",
@@ -146,7 +140,7 @@ export default function DataReviewEmployeesPage() {
             setEditingEmployee(null)
           }}
           onSave={handleSaveEmployee}
-          onVerifyProfile={handleVerifyProfile}
+          submitLabel="Verify & Approve Profile"
         />
       </div>
     </DashboardLayout>

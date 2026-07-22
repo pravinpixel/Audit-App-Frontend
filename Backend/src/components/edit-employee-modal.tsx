@@ -23,10 +23,10 @@ interface EditEmployeeModalProps {
   isOpen: boolean
   onClose: () => void
   onSave: (employee: Employee) => void
-  onVerifyProfile: () => void
+  submitLabel?: string
 }
 
-export function EditEmployeeModal({ employee, isOpen, onClose, onSave, onVerifyProfile }: EditEmployeeModalProps) {
+export function EditEmployeeModal({ employee, isOpen, onClose, onSave, submitLabel = "Save changes" }: EditEmployeeModalProps) {
   const [formData, setFormData] = useState<Employee | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -44,7 +44,7 @@ export function EditEmployeeModal({ employee, isOpen, onClose, onSave, onVerifyP
 
     setSaving(true)
     setError(null)
-    onSave(formData)
+    onSave({ ...formData, profileStatus: "Verified" })
     setSaving(false)
   }
 
@@ -91,6 +91,7 @@ export function EditEmployeeModal({ employee, isOpen, onClose, onSave, onVerifyP
                 value={formData.mobile}
                 onChange={(e) => handleChange("mobile", e.target.value)}
                 required
+                disabled
               />
             </div>
 
@@ -129,19 +130,11 @@ export function EditEmployeeModal({ employee, isOpen, onClose, onSave, onVerifyP
               Cancel
             </Button>
             <Button
-              type="button"
-              onClick={onVerifyProfile}
-              variant="outline"
-              className="border-green-500 text-green-600 hover:bg-green-50"
-            >
-              Verify Profile
-            </Button>
-            <Button
               type="submit"
               disabled={saving}
               className="bg-[#E63946] hover:bg-[#E63946]/90"
             >
-              {saving ? "Saving…" : "Save Changes"}
+              {saving ? "Saving…" : submitLabel}
             </Button>
           </DialogFooter>
         </form>

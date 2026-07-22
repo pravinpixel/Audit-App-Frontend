@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { useNavigate, useParams } from "react-router-dom"
+import { useNavigate, useParams, useLocation } from "react-router-dom"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -32,6 +32,9 @@ interface ContactPerson {
 export default function ContactDataDetailPage() {
   const navigate = useNavigate()
   const params = useParams()
+  const location = useLocation()
+  const listPath = location.pathname.split("/").slice(0, -1).join("/") || "/contact-data"
+  const isDataReviewContactData = location.pathname.startsWith("/data-review/contact-data")
   const { toast } = useToast()
   const [customer, setCustomer] = useState<Customer | null>(null)
   const [selectedAddress, setSelectedAddress] = useState<string>("")
@@ -156,7 +159,7 @@ export default function ContactDataDetailPage() {
       title: "Contact details saved",
       description: "The contact person details have been updated successfully.",
     })
-    navigate("/contact-data")
+    navigate(listPath)
   }
 
   if (!customer) {
@@ -173,7 +176,7 @@ export default function ContactDataDetailPage() {
     <DashboardLayout>
       <div className="space-y-6 w-full">
         <div className="flex items-center gap-3">
-          <Button variant="outline" size="icon" className="bg-transparent" onClick={() => navigate("/contact-data")}>
+          <Button variant="outline" size="icon" className="bg-transparent" onClick={() => navigate(listPath)}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
@@ -342,7 +345,7 @@ export default function ContactDataDetailPage() {
               <div className="flex justify-end mt-5">
                 <Button onClick={handleSave} disabled={isSaving} className="bg-[#E63946] hover:bg-[#E63946]/90">
                   <Save className="h-4 w-4 mr-2" />
-                  {isSaving ? "Saving..." : "Save Changes"}
+                  {isSaving ? "Saving..." : isDataReviewContactData ? "Verify contact details" : "Save Changes"}
                 </Button>
               </div>
             )}

@@ -85,7 +85,14 @@ export default function DashboardPage() {
   }
 
   const handleSaveEmployee = (updatedEmployee: Employee) => {
-    setEmployees(employees.map((emp) => (emp.id === updatedEmployee.id ? updatedEmployee : emp)))
+    const isVerified = updatedEmployee.profileStatus === "Verified"
+    setEmployees(
+      employees.map((emp) =>
+        emp.id === updatedEmployee.id
+          ? { ...updatedEmployee, appStatus: isVerified ? true : updatedEmployee.appStatus }
+          : emp,
+      ),
+    )
     setIsModalOpen(false)
     setEditingEmployee(null)
   }
@@ -94,10 +101,6 @@ export default function DashboardPage() {
     setEmployees(employees.map((emp) => (emp.id === employee.id ? { ...emp, profileStatus: "Verified", appStatus: true } : emp)))
     setIsModalOpen(false)
     setEditingEmployee(null)
-  }
-
-  const handleVerifyProfile = () => {
-    if (editingEmployee) verifyEmployee(editingEmployee)
   }
 
   const summaryCards = [
@@ -174,7 +177,6 @@ export default function DashboardPage() {
             setEditingEmployee(null)
           }}
           onSave={handleSaveEmployee}
-          onVerifyProfile={handleVerifyProfile}
         />
       </div>
     </DashboardLayout>

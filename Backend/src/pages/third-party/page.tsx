@@ -58,7 +58,7 @@ const dummyAuditors: ThirdPartyAuditor[] = [
     aadhaarImage: "/aadhaar-card.jpg",
     profileImage: "/profile-photo.jpg",
     videoUpload: "/placeholder.mp4",
-    profileStatus: "Pending",
+    profileStatus: "Verified",
     appStatus: "Active",
   },
   {
@@ -111,7 +111,7 @@ const dummyAuditors: ThirdPartyAuditor[] = [
     aadhaarImage: "/aadhaar-card.jpg",
     profileImage: "/profile-photo.jpg",
     videoUpload: "/placeholder.mp4",
-    profileStatus: "Pending",
+    profileStatus: "Verified",
     appStatus: "Active",
   },
   {

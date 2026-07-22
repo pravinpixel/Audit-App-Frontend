@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { useNavigate, useParams } from "react-router-dom"
+import { useNavigate, useParams, useLocation } from "react-router-dom"
 import { ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,7 +9,6 @@ import { Textarea } from "@/components/ui/textarea"
 import { Eye, Download } from "lucide-react"
 import type { ThirdPartyAuditor } from "@/types/third-party"
 import { useToast } from "@/hooks/use-toast"
-import { RejectRemarksModal } from "@/components/reject-remarks-modal"
 import { AttachmentViewer } from "@/components/attachment-viewer"
 import { DashboardLayout } from "@/components/dashboard-layout"
 
@@ -154,11 +153,13 @@ const MOCK_AUDITORS: ThirdPartyAuditor[] = [
 export default function EditThirdPartyPage() {
   const navigate = useNavigate()
   const params = useParams()
+  const location = useLocation()
+  const listPath = location.pathname.split("/").slice(0, -1).join("/") || "/third-party"
+  const isDataReviewDataCollector = location.pathname.startsWith("/data-review/data-collector")
   const { toast } = useToast()
   const [auditor, setAuditor] = useState<ThirdPartyAuditor | null>(null)
   const [formData, setFormData] = useState<ThirdPartyAuditor | null>(null)
   const [currentTab, setCurrentTab] = useState("personal")
-  const [showRejectModal, setShowRejectModal] = useState(false)
   const [viewingAttachment, setViewingAttachment] = useState<{ url: string; type: string } | null>(null)
 
   useEffect(() => {
@@ -187,61 +188,30 @@ export default function EditThirdPartyPage() {
     setFormData((prev) => (prev ? { ...prev, [field]: value } : null))
   }
 
-  const handleVerifyAndNext = () => {
+  const handleNextOrSave = () => {
     if (currentTab === "personal") {
       setCurrentTab("bank")
       toast({
-        title: "Personal details verified",
+        title: "Personal details saved",
         description: "Moving to Bank Information tab.",
         className: "bg-green-50 border-green-200",
       })
     } else if (currentTab === "bank") {
       setCurrentTab("kyc")
       toast({
-        title: "Bank details verified",
+        title: "Bank details saved",
         description: "Moving to KYC Details tab.",
         className: "bg-green-50 border-green-200",
       })
     } else if (currentTab === "kyc") {
-      const updatedAuditor = { ...formData, profileStatus: "Verified" as const }
       // In real app, save to API
       toast({
-        title: "Profile verified successfully",
-        description: "The auditor profile has been verified and approved.",
+        title: "Profile saved successfully",
+        description: "The auditor profile has been saved.",
         className: "bg-green-50 border-green-200",
       })
-      navigate("/third-party")
+      navigate(listPath)
     }
-  }
-
-  const handleReject = (remarks: string) => {
-    const updatedAuditor: ThirdPartyAuditor = {
-      ...formData,
-      profileStatus: "Rejected" as const,
-      rejectionRemarks: remarks,
-      rejectionHistory: [
-        ...(formData.rejectionHistory || []),
-        {
-          date: new Date().toISOString(),
-          remarks,
-          rejectedBy: "Admin User",
-        },
-      ],
-    }
-    const storedAuditors = localStorage.getItem("thirdPartyAuditors")
-    if (storedAuditors) {
-      const auditors = JSON.parse(storedAuditors)
-      const updatedAuditors = auditors.map((a: ThirdPartyAuditor) => (a.id === updatedAuditor.id ? updatedAuditor : a))
-      localStorage.setItem("thirdPartyAuditors", JSON.stringify(updatedAuditors))
-    }
-
-    toast({
-      title: "Profile rejected successfully",
-      description: "The auditor has been notified of the rejection.",
-      className: "bg-red-50 border-red-200",
-    })
-    setShowRejectModal(false)
-    navigate("/third-party")
   }
 
   const validatePAN = (pan: string) => {
@@ -260,7 +230,7 @@ export default function EditThirdPartyPage() {
         <Button
           variant="ghost"
           className="hover:bg-[#E63946]/10 hover:text-[#E63946]"
-          onClick={() => navigate("/third-party")}
+          onClick={() => navigate(listPath)}
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Third Party Registration
@@ -301,6 +271,7 @@ export default function EditThirdPartyPage() {
                     id="mobile"
                     value={formData.mobile}
                     onChange={(e) => handleInputChange("mobile", e.target.value)}
+                    disabled
                   />
                 </div>
                 <div>
@@ -642,12 +613,9 @@ export default function EditThirdPartyPage() {
             </TabsContent>
           </Tabs>
 
-          <div className="flex justify-between pt-6 mt-6 border-t border-gray-200">
-            <Button variant="outline" className="text-red-600 bg-transparent" onClick={() => setShowRejectModal(true)}>
-              Reject
-            </Button>
-            <Button className="bg-[#E63946] hover:bg-[#c62e3a]" onClick={handleVerifyAndNext}>
-              {currentTab === "kyc" ? "Verify & Submit" : "Verify & Next"}
+          <div className="flex justify-end pt-6 mt-6 border-t border-gray-200">
+            <Button className="bg-[#E63946] hover:bg-[#c62e3a]" onClick={handleNextOrSave}>
+              {currentTab === "kyc" ? (isDataReviewDataCollector ? "Verify & Approve Profile" : "Save") : "Next"}
             </Button>
           </div>
 
@@ -675,14 +643,6 @@ export default function EditThirdPartyPage() {
             )}
         </div>
       </div>
-
-      {showRejectModal && (
-        <RejectRemarksModal
-          isOpen={showRejectModal}
-          onClose={() => setShowRejectModal(false)}
-          onSubmit={handleReject}
-        />
-      )}
 
       {viewingAttachment && (
         <AttachmentViewer

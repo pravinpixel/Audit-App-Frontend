@@ -111,15 +111,18 @@ export default function App() {
         <Route path="/customers/:id" element={<ProtectedRoute><CustomersIdPage /></ProtectedRoute>} />
         <Route path="/customers" element={<ProtectedRoute><CustomersPage /></ProtectedRoute>} />
         <Route path="/dashboard-home" element={<ProtectedRoute><DashboardHomePage /></ProtectedRoute>} />
-        <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
         <Route path="/data-review/audit-assignment/:id" element={<ProtectedRoute><DataReviewAuditAssignmentIdPage /></ProtectedRoute>} />
         <Route path="/data-review/audit-assignment" element={<ProtectedRoute><DataReviewAuditAssignmentPage /></ProtectedRoute>} />
+        <Route path="/data-review/contact-data/:id" element={<ProtectedRoute><ContactDataIdPage /></ProtectedRoute>} />
         <Route path="/data-review/contact-data" element={<ProtectedRoute><DataReviewContactDataPage /></ProtectedRoute>} />
+        <Route path="/data-review/customer-data/:id" element={<ProtectedRoute><CustomersIdPage /></ProtectedRoute>} />
         <Route path="/data-review/customer-data" element={<ProtectedRoute><DataReviewCustomerDataPage /></ProtectedRoute>} />
+        <Route path="/data-review/data-collector/:id" element={<ProtectedRoute><ThirdPartyIdPage /></ProtectedRoute>} />
         <Route path="/data-review/data-collector" element={<ProtectedRoute><DataReviewDataCollectorPage /></ProtectedRoute>} />
         <Route path="/data-review/employees" element={<ProtectedRoute><DataReviewEmployeesPage /></ProtectedRoute>} />
         <Route path="/data-review/survey-data/:id" element={<ProtectedRoute><DataReviewSurveyDataIdPage /></ProtectedRoute>} />
         <Route path="/data-review/survey-data" element={<ProtectedRoute><DataReviewSurveyDataPage /></ProtectedRoute>} />
+        <Route path="/employee" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
         <Route path="/master/branches/add" element={<ProtectedRoute><MasterBranchesAddPage /></ProtectedRoute>} />
         <Route path="/master/branches/edit/:id" element={<ProtectedRoute><MasterBranchesEditIdPage /></ProtectedRoute>} />
         <Route path="/master/branches" element={<ProtectedRoute><MasterBranchesPage /></ProtectedRoute>} />
