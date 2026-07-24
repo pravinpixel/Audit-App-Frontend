@@ -249,6 +249,15 @@ function ChangeRequestCard({ field, from, to, moveToScrap, comment, requestedBy,
   )
 }
 
+type BulkChangeType = "refillHpt" | "shelfLife" | "scrap"
+
+function getRequestType(info: ChangeRequestInfo): BulkChangeType | "other" {
+  if (info.moveToScrap) return "scrap"
+  if (info.field === "Refill & HPT Due Date") return "refillHpt"
+  if (info.field === "Shelf Life Expiry") return "shelfLife"
+  return "other"
+}
+
 function RequestTypeCell({ field, from, to, moveToScrap }: ChangeRequestInfo) {
   if (moveToScrap) {
     return (
@@ -278,8 +287,10 @@ export function ExtinguisherSurveyTable({ surveys, onApprove, onBulkApprove, onR
   const [approveConfirmOpen, setApproveConfirmOpen] = useState(false)
   const [surveyToApprove, setSurveyToApprove] = useState<string | null>(null)
   const [bulkApproveConfirmOpen, setBulkApproveConfirmOpen] = useState(false)
+  const [bulkFieldSelection, setBulkFieldSelection] = useState<("refillHpt" | "shelfLife")[]>([])
   const [bulkRefillDueDate, setBulkRefillDueDate] = useState("")
   const [bulkShelfLifeExpiry, setBulkShelfLifeExpiry] = useState("")
+  const [bulkChangeTypeSelection, setBulkChangeTypeSelection] = useState<BulkChangeType[]>([])
   const [rejectConfirmOpen, setRejectConfirmOpen] = useState(false)
   const [surveyToReject, setSurveyToReject] = useState<string | null>(null)
   const [rejectComment, setRejectComment] = useState("")
@@ -386,19 +397,51 @@ export function ExtinguisherSurveyTable({ surveys, onApprove, onBulkApprove, onR
 
   const handleBulkApproveClick = () => {
     if (selectedIds.length > 0) {
+      setBulkFieldSelection([])
       setBulkRefillDueDate("")
       setBulkShelfLifeExpiry("")
+      setBulkChangeTypeSelection([])
       setBulkApproveConfirmOpen(true)
     }
   }
 
+  const toggleBulkField = (field: "refillHpt" | "shelfLife", checked: boolean) => {
+    setBulkFieldSelection((prev) => (checked ? [...prev, field] : prev.filter((f) => f !== field)))
+    if (field === "refillHpt" && !checked) setBulkRefillDueDate("")
+    if (field === "shelfLife" && !checked) setBulkShelfLifeExpiry("")
+  }
+
+  const toggleBulkChangeType = (type: BulkChangeType, checked: boolean) => {
+    setBulkChangeTypeSelection((prev) => (checked ? [...prev, type] : prev.filter((t) => t !== type)))
+  }
+
+  const getMatchingChangeRequestIds = () => {
+    if (!changeRequestByLocation) return []
+    return selectedIds.filter((id) => {
+      const survey = surveys.find((s) => s.id === id)
+      const info = survey ? changeRequestByLocation[survey.customerLocationNo] : undefined
+      return info && bulkChangeTypeSelection.includes(getRequestType(info) as BulkChangeType)
+    })
+  }
+
   const handleConfirmBulkApprove = () => {
-    if (onBulkApprove && selectedIds.length > 0) {
-      if (showBulkDetails && !changeRequestMode) {
+    if (!onBulkApprove) return
+
+    if (changeRequestMode) {
+      const matchingIds = getMatchingChangeRequestIds()
+      if (matchingIds.length === 0) return
+      onBulkApprove(matchingIds)
+      setSelectedIds((prev) => prev.filter((id) => !matchingIds.includes(id)))
+      setBulkApproveConfirmOpen(false)
+      return
+    }
+
+    if (selectedIds.length > 0) {
+      if (showBulkDetails) {
         selectedIds.forEach((id) => {
           const updates: Partial<ExtinguisherSurvey> = {}
-          if (bulkRefillDueDate) updates.refillDueDate = bulkRefillDueDate
-          if (bulkShelfLifeExpiry) updates.shelfLifeExpiry = bulkShelfLifeExpiry
+          if (bulkFieldSelection.includes("refillHpt") && bulkRefillDueDate) updates.refillDueDate = bulkRefillDueDate
+          if (bulkFieldSelection.includes("shelfLife") && bulkShelfLifeExpiry) updates.shelfLifeExpiry = bulkShelfLifeExpiry
           if (Object.keys(updates).length > 0) onUpdate(id, updates)
         })
       }
@@ -494,7 +537,7 @@ export function ExtinguisherSurveyTable({ surveys, onApprove, onBulkApprove, onR
                     disabled={pendingSurveys.length === 0}
                   />
                 </TableHead>
-                <TableHead className="font-semibold text-white">Enquiry Date & Time</TableHead>
+                <TableHead className="font-semibold text-white">Created Date</TableHead>
                 <TableHead className="font-semibold text-white">Location No</TableHead>
                 <TableHead className="font-semibold text-white">Floor</TableHead>
                 <TableHead className="font-semibold text-white">Location</TableHead>
@@ -531,7 +574,7 @@ export function ExtinguisherSurveyTable({ surveys, onApprove, onBulkApprove, onR
                         disabled={survey.status !== "Pending"}
                       />
                     </TableCell>
-                    <TableCell>{survey.enquiryDateTime}</TableCell>
+                    <TableCell>{survey.enquiryDateTime.split(" ")[0]}</TableCell>
                     <TableCell>{survey.customerLocationNo}</TableCell>
                     <TableCell>{survey.floorDetails}</TableCell>
                     <TableCell>{survey.locationDetails}</TableCell>
@@ -845,54 +888,118 @@ export function ExtinguisherSurveyTable({ surveys, onApprove, onBulkApprove, onR
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>{changeRequestMode ? "Confirm Bulk Update" : "Confirm Bulk Approval"}</DialogTitle>
-            {!(showBulkDetails && !changeRequestMode) && (
+            {changeRequestMode && (
               <DialogDescription>
-                {changeRequestMode
-                  ? `You are about to apply the following changes to ${selectedIds.length} selected extinguisher survey${selectedIds.length > 1 ? 's' : ''}:`
-                  : `Are you sure you want to approve ${selectedIds.length} selected extinguisher survey${selectedIds.length > 1 ? 's' : ''}? This action will mark all selected surveys as verified.`}
+                Choose which change type{"("}s{")"} to apply from the {selectedIds.length} selected extinguisher
+                survey{selectedIds.length > 1 ? 's' : ''}:
+              </DialogDescription>
+            )}
+            {!showBulkDetails && !changeRequestMode && (
+              <DialogDescription>
+                Are you sure you want to approve {selectedIds.length} selected extinguisher survey
+                {selectedIds.length > 1 ? 's' : ''}? This action will mark all selected surveys as verified.
               </DialogDescription>
             )}
             {showBulkDetails && !changeRequestMode && (
               <DialogDescription>
-                Set the new dates to apply to all {selectedIds.length} selected extinguisher survey{selectedIds.length > 1 ? 's' : ''}:
+                Choose which due date{"("}s{")"} to update for all {selectedIds.length} selected extinguisher survey
+                {selectedIds.length > 1 ? 's' : ''}:
               </DialogDescription>
             )}
           </DialogHeader>
           {changeRequestMode && changeRequestByLocation && (
-            <div className="max-h-56 overflow-y-auto space-y-2 border border-gray-200 rounded-md p-2">
-              {selectedIds.map((id) => {
-                const survey = surveys.find((s) => s.id === id)
-                const info = survey ? changeRequestByLocation[survey.customerLocationNo] : undefined
-                if (!survey || !info) return null
-                return (
-                  <div key={id} className="flex items-center justify-between gap-3">
-                    <span className="text-sm font-medium text-gray-600">{survey.customerLocationNo}</span>
-                    <RequestTypeCell {...info} />
-                  </div>
-                )
-              })}
+            <div className="space-y-4 py-2">
+              <div className="flex items-center gap-6">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <Checkbox
+                    checked={bulkChangeTypeSelection.includes("refillHpt")}
+                    onCheckedChange={(checked) => toggleBulkChangeType("refillHpt", checked as boolean)}
+                    className="data-[state=checked]:bg-[#E63946] data-[state=checked]:border-[#E63946]"
+                  />
+                  <span className="text-sm font-medium text-gray-700">Refill</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <Checkbox
+                    checked={bulkChangeTypeSelection.includes("shelfLife")}
+                    onCheckedChange={(checked) => toggleBulkChangeType("shelfLife", checked as boolean)}
+                    className="data-[state=checked]:bg-[#E63946] data-[state=checked]:border-[#E63946]"
+                  />
+                  <span className="text-sm font-medium text-gray-700">Shelf Life</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <Checkbox
+                    checked={bulkChangeTypeSelection.includes("scrap")}
+                    onCheckedChange={(checked) => toggleBulkChangeType("scrap", checked as boolean)}
+                    className="data-[state=checked]:bg-[#E63946] data-[state=checked]:border-[#E63946]"
+                  />
+                  <span className="text-sm font-medium text-gray-700">Scrap</span>
+                </label>
+              </div>
+
+              {bulkChangeTypeSelection.length > 0 && (
+                <div className="max-h-56 overflow-y-auto space-y-2 border border-gray-200 rounded-md p-2">
+                  {selectedIds.map((id) => {
+                    const survey = surveys.find((s) => s.id === id)
+                    const info = survey ? changeRequestByLocation[survey.customerLocationNo] : undefined
+                    if (!survey || !info || !bulkChangeTypeSelection.includes(getRequestType(info) as BulkChangeType)) return null
+                    return (
+                      <div key={id} className="flex items-center justify-between gap-3">
+                        <span className="text-sm font-medium text-gray-600">{survey.customerLocationNo}</span>
+                        <RequestTypeCell {...info} />
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
             </div>
           )}
           {!changeRequestMode && showBulkDetails && (
-            <div className="grid grid-cols-2 gap-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="bulkRefillDueDate">Refill & HPT Due</Label>
-                <Input
-                  id="bulkRefillDueDate"
-                  type="date"
-                  value={bulkRefillDueDate}
-                  onChange={(e) => setBulkRefillDueDate(e.target.value)}
-                />
+            <div className="space-y-4 py-4">
+              <div className="flex items-center gap-6">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <Checkbox
+                    checked={bulkFieldSelection.includes("refillHpt")}
+                    onCheckedChange={(checked) => toggleBulkField("refillHpt", checked as boolean)}
+                    className="data-[state=checked]:bg-[#E63946] data-[state=checked]:border-[#E63946]"
+                  />
+                  <span className="text-sm font-medium text-gray-700">Refill & HPT</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <Checkbox
+                    checked={bulkFieldSelection.includes("shelfLife")}
+                    onCheckedChange={(checked) => toggleBulkField("shelfLife", checked as boolean)}
+                    className="data-[state=checked]:bg-[#E63946] data-[state=checked]:border-[#E63946]"
+                  />
+                  <span className="text-sm font-medium text-gray-700">Shelf Life</span>
+                </label>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="bulkShelfLifeExpiry">Shelf Life</Label>
-                <Input
-                  id="bulkShelfLifeExpiry"
-                  type="date"
-                  value={bulkShelfLifeExpiry}
-                  onChange={(e) => setBulkShelfLifeExpiry(e.target.value)}
-                />
-              </div>
+
+              {bulkFieldSelection.length > 0 && (
+                <div className="grid grid-cols-2 gap-4">
+                  {bulkFieldSelection.includes("refillHpt") && (
+                    <div className="space-y-2">
+                      <Label htmlFor="bulkRefillDueDate">Refill & HPT Due</Label>
+                      <Input
+                        id="bulkRefillDueDate"
+                        type="date"
+                        value={bulkRefillDueDate}
+                        onChange={(e) => setBulkRefillDueDate(e.target.value)}
+                      />
+                    </div>
+                  )}
+                  {bulkFieldSelection.includes("shelfLife") && (
+                    <div className="space-y-2">
+                      <Label htmlFor="bulkShelfLifeExpiry">Shelf Life</Label>
+                      <Input
+                        id="bulkShelfLifeExpiry"
+                        type="date"
+                        value={bulkShelfLifeExpiry}
+                        onChange={(e) => setBulkShelfLifeExpiry(e.target.value)}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
           <DialogFooter className="gap-2 sm:gap-0">
@@ -901,10 +1008,20 @@ export function ExtinguisherSurveyTable({ surveys, onApprove, onBulkApprove, onR
             </Button>
             <Button
               onClick={handleConfirmBulkApprove}
-              className="bg-gradient-to-r from-[#E63946] to-[#FF8C00] hover:from-[#d32f3c] hover:to-[#f57c00] text-white"
+              disabled={
+                changeRequestMode
+                  ? getMatchingChangeRequestIds().length === 0
+                  : showBulkDetails &&
+                    (bulkFieldSelection.length === 0 ||
+                      (bulkFieldSelection.includes("refillHpt") && !bulkRefillDueDate) ||
+                      (bulkFieldSelection.includes("shelfLife") && !bulkShelfLifeExpiry))
+              }
+              className="bg-gradient-to-r from-[#E63946] to-[#FF8C00] hover:from-[#d32f3c] hover:to-[#f57c00] text-white disabled:opacity-50 disabled:pointer-events-none"
             >
               <CheckCircle className="h-4 w-4 mr-2" />
-              Approve {selectedIds.length} Item{selectedIds.length > 1 ? 's' : ''}
+              {changeRequestMode
+                ? `Update ${getMatchingChangeRequestIds().length} Item${getMatchingChangeRequestIds().length > 1 ? 's' : ''}`
+                : `Approve ${selectedIds.length} Item${selectedIds.length > 1 ? 's' : ''}`}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -4,9 +4,19 @@ import { DashboardLayout } from "@/components/dashboard-layout"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Textarea } from "@/components/ui/textarea"
 import {
-  Download, Search, Flame, BookOpen, Phone, Mail, Eye,
+  Download, Search, Flame, BookOpen, Phone, Mail, Eye, MessageSquare, Send,
 } from "lucide-react"
+
+interface Comment {
+  id: string
+  author: "customer" | "admin"
+  authorName: string
+  text: string
+  timestamp: string
+}
 
 interface AdminMessage {
   text: string
@@ -792,6 +802,31 @@ export const initialRequests: ChangeRequest[] = [
   },
 ]
 
+// Seed each request's comment thread from its customer comment + any admin replies
+const initialCommentsByRequest: Record<string, Comment[]> = {}
+initialRequests.forEach((req) => {
+  const thread: Comment[] = []
+  if (req.customerComment) {
+    thread.push({
+      id: `${req.id}-customer`,
+      author: "customer",
+      authorName: req.contactPerson,
+      text: req.customerComment,
+      timestamp: `${req.requestedOn}, ${req.postedAt}`,
+    })
+  }
+  req.adminMessages.forEach((msg, index) => {
+    thread.push({
+      id: `${req.id}-admin-${index}`,
+      author: "admin",
+      authorName: msg.author,
+      text: msg.text,
+      timestamp: `${msg.date}, ${msg.time}`,
+    })
+  })
+  initialCommentsByRequest[req.id] = thread
+})
+
 function getDaysFromNow(dateStr: string): number {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
@@ -820,6 +855,9 @@ export default function CustomerChangeRequestPage() {
   const navigate = useNavigate()
   const [requests, setRequests] = useState<ChangeRequest[]>(initialRequests)
   const [searchQuery, setSearchQuery] = useState("")
+  const [commentsByRequest, setCommentsByRequest] = useState<Record<string, Comment[]>>(initialCommentsByRequest)
+  const [commentDialogRequestId, setCommentDialogRequestId] = useState<string | null>(null)
+  const [newComment, setNewComment] = useState("")
 
   const filtered = useMemo(() => {
     const q = searchQuery.trim().toLowerCase()
@@ -850,6 +888,28 @@ export default function CustomerChangeRequestPage() {
   const handleFollowupDateChange = (id: string, value: string) => {
     setRequests((prev) => prev.map((r) => (r.id === id ? { ...r, nextFollowupDate: value } : r)))
   }
+
+  const handleSendComment = () => {
+    const trimmed = newComment.trim()
+    if (!trimmed || !commentDialogRequestId) return
+    const comment: Comment = {
+      id: `c${Date.now()}`,
+      author: "admin",
+      authorName: "Admin",
+      text: trimmed,
+      timestamp: new Date().toLocaleString("en-IN", {
+        day: "2-digit", month: "short", year: "numeric",
+        hour: "2-digit", minute: "2-digit", hour12: true,
+      }),
+    }
+    setCommentsByRequest((prev) => ({
+      ...prev,
+      [commentDialogRequestId]: [...(prev[commentDialogRequestId] || []), comment],
+    }))
+    setNewComment("")
+  }
+
+  const activeCommentCompanyName = requests.find((r) => r.id === commentDialogRequestId)?.companyName
 
   return (
     <DashboardLayout>
@@ -888,6 +948,7 @@ export default function CustomerChangeRequestPage() {
                   <TableHead className="font-semibold text-white">Contact Details</TableHead>
                   <TableHead className="font-semibold text-white">Pending Requests</TableHead>
                   <TableHead className="font-semibold text-white">Next followup Date</TableHead>
+                  <TableHead className="font-semibold text-white">Comment</TableHead>
                   <TableHead className="font-semibold text-white">Status</TableHead>
                   <TableHead className="font-semibold text-white text-right">Actions</TableHead>
                 </TableRow>
@@ -895,7 +956,7 @@ export default function CustomerChangeRequestPage() {
               <TableBody>
                 {filtered.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-gray-500">
+                    <TableCell colSpan={9} className="text-center py-8 text-gray-500">
                       No change requests found
                     </TableCell>
                   </TableRow>
@@ -941,6 +1002,19 @@ export default function CustomerChangeRequestPage() {
                         />
                       </TableCell>
                       <TableCell>
+                        <button
+                          onClick={() => { setCommentDialogRequestId(req.id); setNewComment("") }}
+                          className="relative inline-flex items-center justify-center h-8 w-8 rounded-md hover:bg-gray-100 transition-colors"
+                        >
+                          <MessageSquare className="h-4 w-4 text-gray-400 hover:text-[#E63946]" />
+                          {(commentsByRequest[req.id]?.length ?? 0) > 0 && (
+                            <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-[#E63946] text-white text-[9px] font-bold flex items-center justify-center">
+                              {commentsByRequest[req.id]?.length ?? 0}
+                            </span>
+                          )}
+                        </button>
+                      </TableCell>
+                      <TableCell>
                         <FollowupStatusBadge date={req.nextFollowupDate} />
                       </TableCell>
                       <TableCell className="text-right">
@@ -962,6 +1036,72 @@ export default function CustomerChangeRequestPage() {
           </div>
         </div>
       </div>
+
+      <Dialog open={commentDialogRequestId !== null} onOpenChange={(open) => !open && setCommentDialogRequestId(null)}>
+        <DialogContent className="max-w-lg flex flex-col p-0 gap-0" style={{ maxHeight: "85vh" }}>
+          <DialogHeader className="px-5 pt-5 pb-3 border-b border-gray-100 shrink-0">
+            <DialogTitle className="flex items-center gap-2 text-sm font-semibold">
+              <MessageSquare className="h-4 w-4 text-[#E63946]" />
+              Comments
+              {activeCommentCompanyName && (
+                <span className="text-xs font-normal text-gray-400 ml-1">· {activeCommentCompanyName}</span>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="overflow-y-auto px-5 py-5 space-y-5 flex-1">
+            {(commentDialogRequestId ? commentsByRequest[commentDialogRequestId] || [] : []).length === 0 ? (
+              <p className="text-sm text-gray-400 text-center py-6">No comments yet. Be the first to add one.</p>
+            ) : (
+              (commentsByRequest[commentDialogRequestId!] || []).map((comment) => (
+                <div key={comment.id} className={`flex gap-3 ${comment.author === "admin" ? "flex-row-reverse" : ""}`}>
+                  <div className={`h-7 w-7 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 ${
+                    comment.author === "admin" ? "bg-[#E63946] text-white" : "bg-gray-200 text-gray-600"
+                  }`}>
+                    {comment.author === "admin" ? "A" : comment.authorName.charAt(0)}
+                  </div>
+                  <div className={`flex flex-col gap-1 max-w-[78%] ${comment.author === "admin" ? "items-end" : "items-start"}`}>
+                    <div className={`flex items-center gap-2 ${comment.author === "admin" ? "flex-row-reverse" : ""}`}>
+                      <span className="text-xs font-semibold text-gray-700">{comment.authorName}</span>
+                      <span className="text-[10px] text-gray-400">{comment.timestamp}</span>
+                    </div>
+                    <p className={`px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed ${
+                      comment.author === "admin"
+                        ? "bg-[#E63946] text-white rounded-tr-sm"
+                        : "bg-gray-100 text-gray-800 rounded-tl-sm"
+                    }`}>
+                      {comment.text}
+                    </p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          <div className="px-5 py-4 border-t border-gray-100 bg-gray-50 shrink-0">
+            <div className="flex gap-2 items-end">
+              <Textarea
+                placeholder="Write a reply…"
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSendComment() }
+                }}
+                className="resize-none text-sm bg-white border-gray-200 focus:border-[#E63946]/40"
+                rows={2}
+              />
+              <Button
+                onClick={handleSendComment}
+                disabled={!newComment.trim()}
+                className="h-10 w-10 p-0 shrink-0 bg-[#E63946] hover:bg-[#E63946]/90"
+              >
+                <Send className="h-4 w-4" />
+              </Button>
+            </div>
+            <p className="text-[10px] text-gray-400 mt-1.5">Enter to send · Shift+Enter for new line</p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   )
 }

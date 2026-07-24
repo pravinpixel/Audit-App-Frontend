@@ -29,6 +29,7 @@ export function ContactDataTable({
 }: ContactDataTableProps) {
   const navigate = useNavigate()
   const location = useLocation()
+  const isDataReviewContactData = location.pathname.startsWith("/data-review/contact-data")
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
   const [sortField, setSortField] = useState<SortField | null>(null)
@@ -177,7 +178,7 @@ export function ContactDataTable({
                       customer.status === "Verified" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"
                     }`}
                   >
-                    {customer.status}
+                    {isDataReviewContactData && customer.status !== "Verified" ? "Reverification" : customer.status}
                   </span>
                 </td>
                 <td className="px-4 py-3 text-sm">

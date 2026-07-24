@@ -4,9 +4,26 @@ import { DashboardLayout } from "@/components/dashboard-layout"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Textarea } from "@/components/ui/textarea"
 import {
-  Download, Search, Flame, BookOpen, Phone, Mail, Eye,
+  Download, Search, Flame, BookOpen, Phone, Mail, Eye, MessageSquare, Send,
 } from "lucide-react"
+
+interface Comment {
+  id: string
+  author: "customer" | "admin"
+  authorName: string
+  text: string
+  timestamp: string
+}
+
+const mockCommentsByCompany: Record<string, Comment[]> = {
+  "1": [
+    { id: "c1", author: "customer", authorName: "Rahul Sharma", text: "Please update the extinguisher refill date for LOC-001, we got it serviced last week.", timestamp: "12 Jan 2025, 10:30 AM" },
+    { id: "c2", author: "admin", authorName: "Admin", text: "Noted. We will verify with the auditor and update the record shortly.", timestamp: "12 Jan 2025, 11:45 AM" },
+  ],
+}
 
 interface EquipmentRecord {
   companyId: string
@@ -242,6 +259,16 @@ function buildEntries(data: EquipmentRecord[]): DueEntry[] {
 
 const initialEntries = buildEntries(equipmentData)
 
+// Per-company counts of items due for Refill & HPT vs Shelf Life
+const companyDueCounts: Record<string, { refillHpt: number; shelfLife: number }> = {}
+equipmentData.forEach((r) => {
+  if (r.surveyType !== "extinguisher") return
+  const counts = companyDueCounts[r.companyId] ?? { refillHpt: 0, shelfLife: 0 }
+  if (r.refillHptDueDate) counts.refillHpt += 1
+  if (r.shelfLifeDueDate) counts.shelfLife += 1
+  companyDueCounts[r.companyId] = counts
+})
+
 // Convert DD/MM/YYYY → YYYY-MM-DD for date inputs
 function toInputDate(dmy: string): string {
   const p = dmy.split("/")
@@ -296,6 +323,9 @@ export default function DueDateFollowupPage() {
   const navigate = useNavigate()
   const [entries, setEntries] = useState<DueEntry[]>(initialEntries)
   const [searchQuery, setSearchQuery] = useState("")
+  const [commentsByCompany, setCommentsByCompany] = useState<Record<string, Comment[]>>(mockCommentsByCompany)
+  const [commentDialogCompanyId, setCommentDialogCompanyId] = useState<string | null>(null)
+  const [newComment, setNewComment] = useState("")
 
   const filtered = useMemo(() => {
     const q = searchQuery.trim().toLowerCase()
@@ -316,6 +346,28 @@ export default function DueDateFollowupPage() {
   const handleView = (companyId: string, surveyType: DueEntry["surveyType"]) => {
     navigate(`/customer-success/due-date-followup/${companyId}?type=${surveyType}`)
   }
+
+  const handleSendComment = () => {
+    const trimmed = newComment.trim()
+    if (!trimmed || !commentDialogCompanyId) return
+    const comment: Comment = {
+      id: `c${Date.now()}`,
+      author: "admin",
+      authorName: "Admin",
+      text: trimmed,
+      timestamp: new Date().toLocaleString("en-IN", {
+        day: "2-digit", month: "short", year: "numeric",
+        hour: "2-digit", minute: "2-digit", hour12: true,
+      }),
+    }
+    setCommentsByCompany((prev) => ({
+      ...prev,
+      [commentDialogCompanyId]: [...(prev[commentDialogCompanyId] || []), comment],
+    }))
+    setNewComment("")
+  }
+
+  const activeCommentCompanyName = entries.find((e) => e.companyId === commentDialogCompanyId)?.companyName
 
   return (
     <DashboardLayout>
@@ -352,7 +404,9 @@ export default function DueDateFollowupPage() {
                   <TableHead className="font-semibold text-white">Branch Location</TableHead>
                   <TableHead className="font-semibold text-white">Product Type</TableHead>
                   <TableHead className="font-semibold text-white">Contact Details</TableHead>
-                  <TableHead className="font-semibold text-white">Due Date</TableHead>
+                  <TableHead className="font-semibold text-white">Due Summary</TableHead>
+                  <TableHead className="font-semibold text-white">Next Follow Up Date</TableHead>
+                  <TableHead className="font-semibold text-white">Comment</TableHead>
                   <TableHead className="font-semibold text-white">Status</TableHead>
                   <TableHead className="font-semibold text-white text-right">Actions</TableHead>
                 </TableRow>
@@ -360,7 +414,7 @@ export default function DueDateFollowupPage() {
               <TableBody>
                 {filtered.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                    <TableCell colSpan={9} className="text-center py-8 text-gray-500">
                       No due records found
                     </TableCell>
                   </TableRow>
@@ -385,12 +439,31 @@ export default function DueDateFollowupPage() {
                         </div>
                       </TableCell>
                       <TableCell>
+                        <div className="flex flex-col gap-0.5 text-xs text-gray-600">
+                          <span>Refill & HPT: {companyDueCounts[entry.companyId]?.refillHpt ?? 0}</span>
+                          <span>Shelf Life: {companyDueCounts[entry.companyId]?.shelfLife ?? 0}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
                         <input
                           type="date"
                           value={toInputDate(entry.dueDate)}
                           onChange={(e) => handleDueDateChange(entry.id, e.target.value)}
                           className="px-2 py-1.5 rounded-md border border-gray-300 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-[#E63946] focus:border-[#E63946]"
                         />
+                      </TableCell>
+                      <TableCell>
+                        <button
+                          onClick={() => { setCommentDialogCompanyId(entry.companyId); setNewComment("") }}
+                          className="relative inline-flex items-center justify-center h-8 w-8 rounded-md hover:bg-gray-100 transition-colors"
+                        >
+                          <MessageSquare className="h-4 w-4 text-gray-400 hover:text-[#E63946]" />
+                          {(commentsByCompany[entry.companyId]?.length ?? 0) > 0 && (
+                            <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-[#E63946] text-white text-[9px] font-bold flex items-center justify-center">
+                              {commentsByCompany[entry.companyId]?.length ?? 0}
+                            </span>
+                          )}
+                        </button>
                       </TableCell>
                       <TableCell>
                         <FollowupStatusBadge date={entry.dueDate} />
@@ -414,6 +487,72 @@ export default function DueDateFollowupPage() {
           </div>
         </div>
       </div>
+
+      <Dialog open={commentDialogCompanyId !== null} onOpenChange={(open) => !open && setCommentDialogCompanyId(null)}>
+        <DialogContent className="max-w-lg flex flex-col p-0 gap-0" style={{ maxHeight: "85vh" }}>
+          <DialogHeader className="px-5 pt-5 pb-3 border-b border-gray-100 shrink-0">
+            <DialogTitle className="flex items-center gap-2 text-sm font-semibold">
+              <MessageSquare className="h-4 w-4 text-[#E63946]" />
+              Comments
+              {activeCommentCompanyName && (
+                <span className="text-xs font-normal text-gray-400 ml-1">· {activeCommentCompanyName}</span>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="overflow-y-auto px-5 py-5 space-y-5 flex-1">
+            {(commentDialogCompanyId ? commentsByCompany[commentDialogCompanyId] || [] : []).length === 0 ? (
+              <p className="text-sm text-gray-400 text-center py-6">No comments yet. Be the first to add one.</p>
+            ) : (
+              (commentsByCompany[commentDialogCompanyId!] || []).map((comment) => (
+                <div key={comment.id} className={`flex gap-3 ${comment.author === "admin" ? "flex-row-reverse" : ""}`}>
+                  <div className={`h-7 w-7 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 ${
+                    comment.author === "admin" ? "bg-[#E63946] text-white" : "bg-gray-200 text-gray-600"
+                  }`}>
+                    {comment.author === "admin" ? "A" : comment.authorName.charAt(0)}
+                  </div>
+                  <div className={`flex flex-col gap-1 max-w-[78%] ${comment.author === "admin" ? "items-end" : "items-start"}`}>
+                    <div className={`flex items-center gap-2 ${comment.author === "admin" ? "flex-row-reverse" : ""}`}>
+                      <span className="text-xs font-semibold text-gray-700">{comment.authorName}</span>
+                      <span className="text-[10px] text-gray-400">{comment.timestamp}</span>
+                    </div>
+                    <p className={`px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed ${
+                      comment.author === "admin"
+                        ? "bg-[#E63946] text-white rounded-tr-sm"
+                        : "bg-gray-100 text-gray-800 rounded-tl-sm"
+                    }`}>
+                      {comment.text}
+                    </p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          <div className="px-5 py-4 border-t border-gray-100 bg-gray-50 shrink-0">
+            <div className="flex gap-2 items-end">
+              <Textarea
+                placeholder="Write a reply…"
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSendComment() }
+                }}
+                className="resize-none text-sm bg-white border-gray-200 focus:border-[#E63946]/40"
+                rows={2}
+              />
+              <Button
+                onClick={handleSendComment}
+                disabled={!newComment.trim()}
+                className="h-10 w-10 p-0 shrink-0 bg-[#E63946] hover:bg-[#E63946]/90"
+              >
+                <Send className="h-4 w-4" />
+              </Button>
+            </div>
+            <p className="text-[10px] text-gray-400 mt-1.5">Enter to send · Shift+Enter for new line</p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   )
 }

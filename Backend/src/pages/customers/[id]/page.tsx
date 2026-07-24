@@ -5,21 +5,56 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, History } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { Customer } from "@/types/customer"
 import { useToast } from "@/hooks/use-toast"
+
+interface ActivityLogEntry {
+  id: string
+  timestamp: string
+  performedBy: string
+  changes: { field: string; from: string; to: string }[]
+}
+
+const FIELD_LABELS: Partial<Record<keyof Customer, string>> = {
+  customerName: "Customer Name",
+  industryType: "Industry Type",
+  totalArea: "Total Area",
+  totalEmployeeCount: "Total Employee Count",
+  safetyEquipments: "Safety Equipments",
+  groupOfCompanies: "Group of Companies",
+  branchLocations: "Branch Locations",
+  headOfficeLocation: "Head Office Location",
+  remarks: "Remarks",
+  gpsLocation: "GPS Location",
+  area: "Area",
+  address: "Address",
+  state: "State",
+  city: "City",
+  district: "District",
+  pinCode: "Pin Code",
+  country: "Country",
+  gst: "GST",
+  gstCompanyName: "GST Company Name",
+}
 
 export default function EditCustomerPage() {
   const navigate = useNavigate()
   const params = useParams()
   const location = useLocation()
-  const listPath = location.pathname.split("/").slice(0, -1).join("/") || "/customers"
   const isDataReviewCustomerData = location.pathname.startsWith("/data-review/customer-data")
+  const isDataReviewCustomers = location.pathname.startsWith("/data-review/customers")
+  const incomingAuditId = (location.state as { auditId?: string } | null)?.auditId
+  const listPath = isDataReviewCustomers
+    ? "/data-review/survey-data"
+    : location.pathname.split("/").slice(0, -1).join("/") || "/customers"
   const { toast } = useToast()
   const [activeTab, setActiveTab] = useState(0)
   const [customer, setCustomer] = useState<Customer | null>(null)
   const [formData, setFormData] = useState<Partial<Customer>>({})
+  const [activityLog, setActivityLog] = useState<ActivityLogEntry[]>([])
+  const isReverification = (isDataReviewCustomerData || isDataReviewCustomers) && customer?.status !== "Verified"
 
   useEffect(() => {
     const storedCustomers = localStorage.getItem("customers")
@@ -30,6 +65,38 @@ export default function EditCustomerPage() {
         setCustomer(found)
         setFormData(found)
       }
+    }
+
+    const storedLog = localStorage.getItem(`activityLog_${params.id}`)
+    if (storedLog) {
+      setActivityLog(JSON.parse(storedLog))
+    } else {
+      const now = Date.now()
+      const dummyLog: ActivityLogEntry[] = [
+        {
+          id: "LOG-DUMMY-3",
+          timestamp: new Date(now - 3 * 60 * 60 * 1000).toISOString(),
+          performedBy: "Admin User",
+          changes: [{ field: "Address", from: "12, Old Layout", to: "45, Tech Park, Electronic City Phase 1" }],
+        },
+        {
+          id: "LOG-DUMMY-2",
+          timestamp: new Date(now - 1 * 24 * 60 * 60 * 1000).toISOString(),
+          performedBy: "Admin User",
+          changes: [
+            { field: "Head Office Location", from: "Pune", to: "Bangalore" },
+            { field: "Remarks", from: "Pending site visit", to: "Site visit completed" },
+          ],
+        },
+        {
+          id: "LOG-DUMMY-1",
+          timestamp: new Date(now - 2 * 24 * 60 * 60 * 1000).toISOString(),
+          performedBy: "Admin User",
+          changes: [{ field: "Industry Type", from: "Manufacturing", to: "IT Services" }],
+        },
+      ]
+      setActivityLog(dummyLog)
+      localStorage.setItem(`activityLog_${params.id}`, JSON.stringify(dummyLog))
     }
   }, [params.id])
 
@@ -57,10 +124,33 @@ export default function EditCustomerPage() {
     const storedCustomers = localStorage.getItem("customers")
     if (storedCustomers) {
       const customers: Customer[] = JSON.parse(storedCustomers)
+      const original = customers.find((c) => c.id === params.id)
       const updatedCustomers = customers.map((c) =>
         c.id === params.id ? { ...c, ...formData, status: "Verified" as const } : c,
       )
       localStorage.setItem("customers", JSON.stringify(updatedCustomers))
+
+      if (original) {
+        const changes = (Object.keys(FIELD_LABELS) as (keyof Customer)[])
+          .filter((field) => (original[field] ?? "") !== (formData[field] ?? ""))
+          .map((field) => ({
+            field: FIELD_LABELS[field] as string,
+            from: String(original[field] ?? "—"),
+            to: String(formData[field] ?? "—"),
+          }))
+
+        if (changes.length > 0) {
+          const newEntry: ActivityLogEntry = {
+            id: `LOG-${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            performedBy: "Admin User",
+            changes,
+          }
+          const updatedLog = [newEntry, ...activityLog]
+          setActivityLog(updatedLog)
+          localStorage.setItem(`activityLog_${params.id}`, JSON.stringify(updatedLog))
+        }
+      }
 
       toast({
         title: "Customer Verified",
@@ -227,6 +317,7 @@ export default function EditCustomerPage() {
                         value={formData.contactPerson1Name || ""}
                         onChange={(e) => handleInputChange("contactPerson1Name", e.target.value)}
                         className="mt-1"
+                        disabled
                       />
                     </div>
                     <div>
@@ -236,6 +327,7 @@ export default function EditCustomerPage() {
                         value={formData.contactPerson1Designation || ""}
                         onChange={(e) => handleInputChange("contactPerson1Designation", e.target.value)}
                         className="mt-1"
+                        disabled
                       />
                     </div>
                     <div>
@@ -245,6 +337,7 @@ export default function EditCustomerPage() {
                         value={formData.contactPerson1Mobile || ""}
                         onChange={(e) => handleInputChange("contactPerson1Mobile", e.target.value)}
                         className="mt-1"
+                        disabled
                       />
                     </div>
                     <div>
@@ -255,6 +348,7 @@ export default function EditCustomerPage() {
                         value={formData.contactPerson1Email || ""}
                         onChange={(e) => handleInputChange("contactPerson1Email", e.target.value)}
                         className="mt-1"
+                        disabled
                       />
                     </div>
                   </div>
@@ -270,6 +364,7 @@ export default function EditCustomerPage() {
                         value={formData.contactPerson2Name || ""}
                         onChange={(e) => handleInputChange("contactPerson2Name", e.target.value)}
                         className="mt-1"
+                        disabled
                       />
                     </div>
                     <div>
@@ -279,6 +374,7 @@ export default function EditCustomerPage() {
                         value={formData.contactPerson2Designation || ""}
                         onChange={(e) => handleInputChange("contactPerson2Designation", e.target.value)}
                         className="mt-1"
+                        disabled
                       />
                     </div>
                     <div>
@@ -288,6 +384,7 @@ export default function EditCustomerPage() {
                         value={formData.contactPerson2Mobile || ""}
                         onChange={(e) => handleInputChange("contactPerson2Mobile", e.target.value)}
                         className="mt-1"
+                        disabled
                       />
                     </div>
                     <div>
@@ -298,6 +395,7 @@ export default function EditCustomerPage() {
                         value={formData.contactPerson2Email || ""}
                         onChange={(e) => handleInputChange("contactPerson2Email", e.target.value)}
                         className="mt-1"
+                        disabled
                       />
                     </div>
                   </div>
@@ -419,7 +517,16 @@ export default function EditCustomerPage() {
             <div className="flex items-center gap-2">
               {activeTab < 2 ? (
                 <Button className="bg-[#E63946] hover:bg-[#c62e3a] text-white" onClick={handleVerifyNext}>
-                  {isDataReviewCustomerData ? "Save & Next" : "Next"}
+                  {isDataReviewCustomerData || isDataReviewCustomers ? "Save & Next" : "Next"}
+                </Button>
+              ) : isDataReviewCustomers ? (
+                <Button
+                  className="bg-[#E63946] hover:bg-[#c62e3a] text-white"
+                  onClick={() =>
+                    navigate(`/data-review/contact-data/${params.id}`, { state: { auditId: incomingAuditId } })
+                  }
+                >
+                  Continue to Contact Data
                 </Button>
               ) : (
                 <Button className="bg-[#E63946] hover:bg-[#c62e3a] text-white" onClick={handleVerifySubmit}>
@@ -428,6 +535,50 @@ export default function EditCustomerPage() {
               )}
             </div>
           </div>
+        </div>
+
+        <div className="bg-white border border-gray-200 rounded-lg p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <History className="h-4 w-4 text-[#E63946]" />
+            <h2 className="text-lg font-semibold text-gray-900">Activity Log</h2>
+          </div>
+
+          {activityLog.length === 0 ? (
+            <p className="text-sm text-gray-500">No changes recorded yet.</p>
+          ) : (
+            <div className="space-y-4">
+              {activityLog.map((entry, entryIndex) => {
+                const highlight = isReverification && entryIndex === 0
+                return (
+                  <div key={entry.id} className="border border-gray-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-sm font-medium text-gray-900">{entry.performedBy}</p>
+                      <p
+                        className={cn(
+                          "text-xs",
+                          highlight
+                            ? "px-2 py-0.5 rounded-full font-semibold bg-amber-100 text-amber-800"
+                            : "text-gray-500",
+                        )}
+                      >
+                        {highlight ? "Re-updated on " : ""}
+                        {new Date(entry.timestamp).toLocaleDateString()} at{" "}
+                        {new Date(entry.timestamp).toLocaleTimeString()}
+                      </p>
+                    </div>
+                    <ul className="space-y-1">
+                      {entry.changes.map((change, index) => (
+                        <li key={index} className="text-sm text-gray-600">
+                          Changed <span className="font-medium text-gray-900">{change.field}</span> from "
+                          {change.from}" to "{change.to}"
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </div>
       </div>
     </DashboardLayout>

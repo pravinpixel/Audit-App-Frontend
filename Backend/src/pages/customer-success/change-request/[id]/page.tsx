@@ -642,7 +642,17 @@ export default function ChangeRequestDetailPage() {
   }
 
   const handleBulkApproveExtinguisher = (ids: string[]) => {
-    setExtinguisherSurveys((prev) => prev.map((s) => (ids.includes(s.id) ? { ...s, status: "Verified" } : s)))
+    setExtinguisherSurveys((prev) =>
+      prev.map((s) => {
+        if (!ids.includes(s.id)) return s
+        const req = extChangeRequests[s.customerLocationNo]
+        const isoTo = req ? toIsoDate(req.to) : null
+        const fieldUpdate: Partial<ExtinguisherSurvey> = {}
+        if (isoTo && req?.field === "Refill & HPT Due Date") fieldUpdate.refillDueDate = isoTo
+        if (isoTo && req?.field === "Shelf Life Expiry") fieldUpdate.shelfLifeExpiry = isoTo
+        return { ...s, ...fieldUpdate, status: "Verified" }
+      })
+    )
   }
 
   const handleApproveTraining = (id: string) => {

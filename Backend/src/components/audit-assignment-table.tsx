@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useLocation } from "react-router-dom"
 import { Building2, User, Mail, Phone } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -12,6 +12,7 @@ interface AuditAssignmentTableProps {
 
 export function AuditAssignmentTable({ assignments }: AuditAssignmentTableProps) {
   const navigate = useNavigate()
+  const location = useLocation()
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
@@ -19,7 +20,7 @@ export function AuditAssignmentTable({ assignments }: AuditAssignmentTableProps)
         <Table>
           <TableHeader>
             <TableRow className="bg-gradient-to-r from-[#E63946] to-[#FF8C00] hover:from-[#d12433] hover:to-[#e67e00]">
-              <TableHead className="font-semibold text-white">Request ID</TableHead>
+              <TableHead className="font-semibold text-white">Company ID</TableHead>
               <TableHead className="font-semibold text-white">Company Details</TableHead>
               <TableHead className="font-semibold text-white">Contact Information</TableHead>
               <TableHead className="font-semibold text-white">Building Information</TableHead>
@@ -96,7 +97,7 @@ export function AuditAssignmentTable({ assignments }: AuditAssignmentTableProps)
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => navigate(`/data-review/audit-assignment/${assignment.id}`)}
+                      onClick={() => navigate(`${location.pathname}/${assignment.id}`)}
                       className="text-[#E63946] border-[#E63946] hover:bg-[#E63946]/10"
                     >
                       {assignment.assignmentStatus === "Assigned" ? "Reassign" : "Assign"}

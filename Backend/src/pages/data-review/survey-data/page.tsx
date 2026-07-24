@@ -8,6 +8,13 @@ import { AuditTable } from "@/components/audit-table"
 import { SummaryCards } from "@/components/summary-cards"
 import type { AuditCompany } from "@/types/audit"
 
+const DUMMY_ASSIGNEE_NAMES = ["Rahul Sharma", "Priya Menon", "Arjun Reddy", "Sneha Iyer", "Vikram Nair", "Anita Desai"]
+
+interface StoredAssignment {
+  assignmentStatus: "Self Assigned"
+  assignedTo: string
+}
+
 export default function DataReviewSurveyDataPage() {
   const navigate = useNavigate()
   const [audits, setAudits] = useState<AuditCompany[]>([])
@@ -36,6 +43,8 @@ export default function DataReviewSurveyDataPage() {
         state: "Karnataka",
         city: "Bangalore",
         approvalsPending: 3,
+        assignmentStatus: "Self Assigned",
+        assignedTo: "Rahul Sharma",
       },
       {
         id: "AUD002",
@@ -46,6 +55,7 @@ export default function DataReviewSurveyDataPage() {
         state: "Maharashtra",
         city: "Mumbai",
         approvalsPending: 5,
+        assignmentStatus: "Not Assigned",
       },
       {
         id: "AUD003",
@@ -56,6 +66,7 @@ export default function DataReviewSurveyDataPage() {
         state: "Delhi",
         city: "New Delhi",
         approvalsPending: 2,
+        assignmentStatus: "Not Assigned",
       },
       {
         id: "AUD004",
@@ -66,6 +77,8 @@ export default function DataReviewSurveyDataPage() {
         state: "Tamil Nadu",
         city: "Chennai",
         approvalsPending: 4,
+        assignmentStatus: "Self Assigned",
+        assignedTo: "Priya Menon",
       },
       {
         id: "AUD005",
@@ -76,9 +89,17 @@ export default function DataReviewSurveyDataPage() {
         state: "Maharashtra",
         city: "Pune",
         approvalsPending: 1,
+        assignmentStatus: "Not Assigned",
       },
     ]
-    const pendingAudits = mockAudits.filter((a) => a.approvalsPending > 0)
+
+    const storedAssignments = localStorage.getItem("surveyDataAssignments")
+    const assignments: Record<string, StoredAssignment> = storedAssignments ? JSON.parse(storedAssignments) : {}
+    const auditsWithAssignments = mockAudits.map((audit) =>
+      assignments[audit.id] ? { ...audit, ...assignments[audit.id] } : audit,
+    )
+
+    const pendingAudits = auditsWithAssignments.filter((a) => a.approvalsPending > 0)
     setAudits(pendingAudits)
     setFilteredAudits(pendingAudits)
   }, [navigate])
@@ -122,7 +143,20 @@ export default function DataReviewSurveyDataPage() {
   }, [searchQuery, industryTypeFilter, branchLocationFilter, headOfficeFilter, stateFilter, cityFilter, audits])
 
   const handleView = (auditId: string) => {
-    navigate(`/data-review/survey-data/${auditId}`)
+    const customerId = auditId.replace("AUD", "CUST")
+    navigate(`/data-review/customers/${customerId}`, { state: { auditId } })
+  }
+
+  const handleSelfAssign = (auditId: string, assignedTo: string) => {
+    const storedAssignments = localStorage.getItem("surveyDataAssignments")
+    const assignments: Record<string, StoredAssignment> = storedAssignments ? JSON.parse(storedAssignments) : {}
+    assignments[auditId] = { assignmentStatus: "Self Assigned", assignedTo }
+    localStorage.setItem("surveyDataAssignments", JSON.stringify(assignments))
+
+    const updateAssignment = (list: AuditCompany[]) =>
+      list.map((a) => (a.id === auditId ? { ...a, assignmentStatus: "Self Assigned" as const, assignedTo } : a))
+    setAudits(updateAssignment)
+    setFilteredAudits(updateAssignment)
   }
 
   const summaryCards = [
@@ -173,7 +207,13 @@ export default function DataReviewSurveyDataPage() {
           onCityChange={setCityFilter}
         />
 
-        <AuditTable audits={filteredAudits} onView={handleView} />
+        <AuditTable
+          audits={filteredAudits}
+          onView={handleView}
+          showAssignmentStatus
+          onSelfAssign={handleSelfAssign}
+          assigneeOptions={DUMMY_ASSIGNEE_NAMES}
+        />
       </div>
     </DashboardLayout>
   )

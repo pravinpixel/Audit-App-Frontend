@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { Download, Users, Clock, CheckCircle2, UserCheck } from "lucide-react"
+import { Plus, Users, Clock, CheckCircle2, UserCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { EmployeeFilters } from "@/components/employee-filters"
@@ -32,9 +32,23 @@ export default function DashboardPage() {
   }, [navigate])
 
   const fetchEmployees = () => {
-    setEmployees(dummyEmployees)
-    setFilteredEmployees(dummyEmployees)
+    const storedEmployees = localStorage.getItem("employees")
+    if (storedEmployees) {
+      const parsed = JSON.parse(storedEmployees)
+      setEmployees(parsed)
+      setFilteredEmployees(parsed)
+    } else {
+      localStorage.setItem("employees", JSON.stringify(dummyEmployees))
+      setEmployees(dummyEmployees)
+      setFilteredEmployees(dummyEmployees)
+    }
   }
+
+  useEffect(() => {
+    if (employees.length > 0) {
+      localStorage.setItem("employees", JSON.stringify(employees))
+    }
+  }, [employees])
 
   useEffect(() => {
     let filtered = [...employees]
@@ -142,9 +156,12 @@ export default function DashboardPage() {
             <h1 className="text-2xl font-bold text-gray-900">Employee Management</h1>
             <p className="text-sm text-gray-600 mt-1">Manage employee profiles and access permissions</p>
           </div>
-          <Button className="bg-gradient-to-r from-[#E63946] to-[#FF8C00] hover:from-[#D32F3F] hover:to-[#F57C00] text-white">
-            <Download className="h-4 w-4 mr-2" />
-            Export Employees
+          <Button
+            onClick={() => navigate("/employee/add")}
+            className="bg-gradient-to-r from-[#E63946] to-[#FF8C00] hover:from-[#D32F3F] hover:to-[#F57C00] text-white"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Employee
           </Button>
         </div>
 

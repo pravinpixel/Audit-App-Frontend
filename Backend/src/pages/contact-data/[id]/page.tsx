@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/hooks/use-toast"
-import { ArrowLeft, Building2, MapPin, User, Save, KeyRound } from "lucide-react"
+import { ArrowLeft, Building2, MapPin, User, Save, KeyRound, History } from "lucide-react"
 import type { Customer } from "@/types/customer"
 
 interface ProductAccess {
@@ -29,18 +29,31 @@ interface ContactPerson {
   trainingAccess?: ProductAccess
 }
 
+interface ActivityLogEntry {
+  id: string
+  timestamp: string
+  performedBy: string
+  changes: { field: string; from: string; to: string }[]
+}
+
+const describeAccess = (access?: ProductAccess) => (access?.enabled ? access.accessLevel : "Disabled")
+
 export default function ContactDataDetailPage() {
   const navigate = useNavigate()
   const params = useParams()
   const location = useLocation()
   const listPath = location.pathname.split("/").slice(0, -1).join("/") || "/contact-data"
   const isDataReviewContactData = location.pathname.startsWith("/data-review/contact-data")
+  const incomingAuditId = (location.state as { auditId?: string } | null)?.auditId
   const { toast } = useToast()
   const [customer, setCustomer] = useState<Customer | null>(null)
+  const isReverification = isDataReviewContactData && customer?.status !== "Verified"
   const [selectedAddress, setSelectedAddress] = useState<string>("")
   const [addresses, setAddresses] = useState<string[]>([])
   const [contactPersons, setContactPersons] = useState<ContactPerson[]>([])
+  const [originalContactPersons, setOriginalContactPersons] = useState<ContactPerson[]>([])
   const [isSaving, setIsSaving] = useState(false)
+  const [activityLog, setActivityLog] = useState<ActivityLogEntry[]>([])
 
   useEffect(() => {
     const storedCustomers = localStorage.getItem("customers")
@@ -69,27 +82,60 @@ export default function ContactDataDetailPage() {
           trainingAccess: { enabled: false, accessLevel: "View" },
         })
 
-        setContactPersons(
-          [
-            {
-              name: found.contactPerson1Name,
-              designation: found.contactPerson1Designation,
-              mobile: found.contactPerson1Mobile,
-              email: found.contactPerson1Email,
-              ...defaultAccess(),
-              ...accessByIndex[0],
-            },
-            {
-              name: found.contactPerson2Name,
-              designation: found.contactPerson2Designation,
-              mobile: found.contactPerson2Mobile,
-              email: found.contactPerson2Email,
-              ...defaultAccess(),
-              ...accessByIndex[1],
-            },
-          ].filter((p) => p.name),
-        )
+        const builtContactPersons = [
+          {
+            name: found.contactPerson1Name,
+            designation: found.contactPerson1Designation,
+            mobile: found.contactPerson1Mobile,
+            email: found.contactPerson1Email,
+            ...defaultAccess(),
+            ...accessByIndex[0],
+          },
+          {
+            name: found.contactPerson2Name,
+            designation: found.contactPerson2Designation,
+            mobile: found.contactPerson2Mobile,
+            email: found.contactPerson2Email,
+            ...defaultAccess(),
+            ...accessByIndex[1],
+          },
+        ].filter((p) => p.name)
+
+        setContactPersons(builtContactPersons)
+        setOriginalContactPersons(JSON.parse(JSON.stringify(builtContactPersons)))
       }
+    }
+
+    const storedLog = localStorage.getItem(`activityLog_contact_${params.id}`)
+    if (storedLog) {
+      setActivityLog(JSON.parse(storedLog))
+    } else {
+      const now = Date.now()
+      const dummyLog: ActivityLogEntry[] = [
+        {
+          id: "LOG-DUMMY-3",
+          timestamp: new Date(now - 5 * 60 * 60 * 1000).toISOString(),
+          performedBy: "Admin User",
+          changes: [{ field: "Contact Person 1 - Mobile No", from: "+91 98765 00000", to: "+91 98765 11111" }],
+        },
+        {
+          id: "LOG-DUMMY-2",
+          timestamp: new Date(now - 1 * 24 * 60 * 60 * 1000).toISOString(),
+          performedBy: "Admin User",
+          changes: [
+            { field: "Contact Person 1 - Portal Access", from: "Disabled", to: "Enabled" },
+            { field: "Contact Person 1 - Extinguisher Access", from: "Disabled", to: "View" },
+          ],
+        },
+        {
+          id: "LOG-DUMMY-1",
+          timestamp: new Date(now - 2 * 24 * 60 * 60 * 1000).toISOString(),
+          performedBy: "Admin User",
+          changes: [{ field: "Contact Person 2 - Designation", from: "Executive", to: "HR Manager" }],
+        },
+      ]
+      setActivityLog(dummyLog)
+      localStorage.setItem(`activityLog_contact_${params.id}`, JSON.stringify(dummyLog))
     }
   }, [params.id])
 
@@ -154,12 +200,48 @@ export default function ContactDataDetailPage() {
       })
       localStorage.setItem("customers", JSON.stringify(updated))
     }
+
+    const changes: { field: string; from: string; to: string }[] = []
+    contactPersons.forEach((person, index) => {
+      const original = originalContactPersons[index] ?? {}
+      const label = `Contact Person ${index + 1}`
+      const compare = (field: string, from: string, to: string) => {
+        if (from !== to) changes.push({ field: `${label} - ${field}`, from, to })
+      }
+      compare("Contact Type", original.contactType ?? "—", person.contactType ?? "—")
+      compare("Name", original.name ?? "—", person.name ?? "—")
+      compare("Designation", original.designation ?? "—", person.designation ?? "—")
+      compare("Mobile No", original.mobile ?? "—", person.mobile ?? "—")
+      compare("Email Address", original.email ?? "—", person.email ?? "—")
+      compare("Portal Access", original.portalAccessEnabled ? "Enabled" : "Disabled", person.portalAccessEnabled ? "Enabled" : "Disabled")
+      compare("Extinguisher Access", describeAccess(original.extinguisherAccess), describeAccess(person.extinguisherAccess))
+      compare("Training Access", describeAccess(original.trainingAccess), describeAccess(person.trainingAccess))
+    })
+
+    if (changes.length > 0) {
+      const newEntry: ActivityLogEntry = {
+        id: `LOG-${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        performedBy: "Admin User",
+        changes,
+      }
+      const updatedLog = [newEntry, ...activityLog]
+      setActivityLog(updatedLog)
+      localStorage.setItem(`activityLog_contact_${customer.id}`, JSON.stringify(updatedLog))
+    }
+
     setIsSaving(false)
     toast({
       title: "Contact details saved",
       description: "The contact person details have been updated successfully.",
     })
-    navigate(listPath)
+    navigate(
+      isDataReviewContactData
+        ? incomingAuditId
+          ? `/data-review/survey-data/${incomingAuditId}`
+          : "/data-review/survey-data"
+        : listPath,
+    )
   }
 
   if (!customer) {
@@ -351,6 +433,49 @@ export default function ContactDataDetailPage() {
             )}
           </div>
         )}
+
+        <div className="bg-white border border-gray-200 rounded-lg p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <History className="h-4 w-4 text-[#E63946]" />
+            <h2 className="text-lg font-semibold text-gray-900">Activity Log</h2>
+          </div>
+
+          {activityLog.length === 0 ? (
+            <p className="text-sm text-gray-500">No changes recorded yet.</p>
+          ) : (
+            <div className="space-y-4">
+              {activityLog.map((entry, entryIndex) => {
+                const highlight = isReverification && entryIndex === 0
+                return (
+                  <div key={entry.id} className="border border-gray-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-sm font-medium text-gray-900">{entry.performedBy}</p>
+                      <p
+                        className={
+                          highlight
+                            ? "text-xs px-2 py-0.5 rounded-full font-semibold bg-amber-100 text-amber-800"
+                            : "text-xs text-gray-500"
+                        }
+                      >
+                        {highlight ? "Re-updated on " : ""}
+                        {new Date(entry.timestamp).toLocaleDateString()} at{" "}
+                        {new Date(entry.timestamp).toLocaleTimeString()}
+                      </p>
+                    </div>
+                    <ul className="space-y-1">
+                      {entry.changes.map((change, index) => (
+                        <li key={index} className="text-sm text-gray-600">
+                          Changed <span className="font-medium text-gray-900">{change.field}</span> from "
+                          {change.from}" to "{change.to}"
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
       </div>
     </DashboardLayout>
   )

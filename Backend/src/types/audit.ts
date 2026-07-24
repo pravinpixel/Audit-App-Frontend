@@ -15,6 +15,8 @@ export interface AuditCompany {
   city: string
   approvalsPending: number
   primaryContact?: PrimaryContact
+  assignmentStatus?: "Self Assigned" | "Not Assigned"
+  assignedTo?: string
 }
 
 export interface ExtinguisherSurvey {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { useNavigate, useParams } from "react-router-dom"
+import { useNavigate, useParams, useLocation } from "react-router-dom"
 import {
   ArrowLeft, Building2, User, Phone, Mail, Flame, BookOpen, CheckCircle2, History, AlertTriangle, Trash2,
 } from "lucide-react"
@@ -162,6 +162,8 @@ const mockHistory: Record<string, AssignmentRecord[]> = {
 export default function AuditAssignmentDetailPage() {
   const navigate = useNavigate()
   const params = useParams()
+  const location = useLocation()
+  const listPath = location.pathname.split("/").slice(0, -1).join("/") || "/audit-assignments"
   const id = params.id as string
 
   const assignment = mockAssignments.find((a) => a.id === id)
@@ -186,7 +188,7 @@ export default function AuditAssignmentDetailPage() {
       <DashboardLayout>
         <div className="flex flex-col items-center justify-center h-64 gap-4">
           <p className="text-gray-500">Assignment not found.</p>
-          <Button variant="outline" onClick={() => navigate("/data-review/audit-assignment")}>
+          <Button variant="outline" onClick={() => navigate(listPath)}>
             <ArrowLeft className="h-4 w-4 mr-2" /> Back
           </Button>
         </div>
@@ -243,7 +245,7 @@ export default function AuditAssignmentDetailPage() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => navigate("/data-review/audit-assignment")}
+            onClick={() => navigate(listPath)}
             className="text-gray-600 hover:text-gray-900"
           >
             <ArrowLeft className="h-4 w-4 mr-1.5" />
@@ -275,7 +277,7 @@ export default function AuditAssignmentDetailPage() {
 
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div className="bg-gray-50 rounded-lg p-3">
-                  <p className="text-xs text-gray-400 mb-0.5">Request ID</p>
+                  <p className="text-xs text-gray-400 mb-0.5">Company ID</p>
                   <p className="font-semibold text-gray-800">{assignment.requestId}</p>
                 </div>
                 <div className="bg-gray-50 rounded-lg p-3">

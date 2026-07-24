@@ -2,12 +2,14 @@ import type React from "react"
 import { Navigate, Route, Routes } from "react-router-dom"
 import { Toaster } from "@/components/ui/toaster"
 
+import AddEmployeePage from "./pages/employee/add/page"
 import AdminSettingsRolesAddPage from "./pages/admin-settings/roles/add/page"
 import AdminSettingsRolesPage from "./pages/admin-settings/roles/page"
 import AdminSettingsUsersAddPage from "./pages/admin-settings/users/add/page"
 import AdminSettingsUsersPage from "./pages/admin-settings/users/page"
 import AssignCustomerNewPage from "./pages/assign-customer/new/page"
 import AssignCustomerPage from "./pages/assign-customer/page"
+import AuditAssignmentsIdPage from "./pages/audit-assignments/[id]/page"
 import AuditAssignmentsPage from "./pages/audit-assignments/page"
 import AuditEnquiryIdEnquiryEnquiryIdPage from "./pages/audit-enquiry/[id]/enquiry/[enquiryId]/page"
 import AuditEnquiryIdPage from "./pages/audit-enquiry/[id]/page"
@@ -29,12 +31,9 @@ import CustomersIdPage from "./pages/customers/[id]/page"
 import CustomersPage from "./pages/customers/page"
 import DashboardHomePage from "./pages/dashboard-home/page"
 import DashboardPage from "./pages/dashboard/page"
-import DataReviewAuditAssignmentIdPage from "./pages/data-review/audit-assignment/[id]/page"
-import DataReviewAuditAssignmentPage from "./pages/data-review/audit-assignment/page"
 import DataReviewContactDataPage from "./pages/data-review/contact-data/page"
 import DataReviewCustomerDataPage from "./pages/data-review/customer-data/page"
 import DataReviewDataCollectorPage from "./pages/data-review/data-collector/page"
-import DataReviewEmployeesPage from "./pages/data-review/employees/page"
 import DataReviewSurveyDataIdPage from "./pages/data-review/survey-data/[id]/page"
 import DataReviewSurveyDataPage from "./pages/data-review/survey-data/page"
 import MasterBranchesAddPage from "./pages/master/branches/add/page"
@@ -91,6 +90,7 @@ export default function App() {
         <Route path="/admin-settings/users" element={<ProtectedRoute><AdminSettingsUsersPage /></ProtectedRoute>} />
         <Route path="/assign-customer/new" element={<ProtectedRoute><AssignCustomerNewPage /></ProtectedRoute>} />
         <Route path="/assign-customer" element={<ProtectedRoute><AssignCustomerPage /></ProtectedRoute>} />
+        <Route path="/audit-assignments/:id" element={<ProtectedRoute><AuditAssignmentsIdPage /></ProtectedRoute>} />
         <Route path="/audit-assignments" element={<ProtectedRoute><AuditAssignmentsPage /></ProtectedRoute>} />
         <Route path="/audit-enquiry/:id/enquiry/:enquiryId" element={<ProtectedRoute><AuditEnquiryIdEnquiryEnquiryIdPage /></ProtectedRoute>} />
         <Route path="/audit-enquiry/:id/training-enquiry/:enquiryId" element={<ProtectedRoute><AuditEnquiryIdTrainingEnquiryEnquiryIdPage /></ProtectedRoute>} />
@@ -111,17 +111,16 @@ export default function App() {
         <Route path="/customers/:id" element={<ProtectedRoute><CustomersIdPage /></ProtectedRoute>} />
         <Route path="/customers" element={<ProtectedRoute><CustomersPage /></ProtectedRoute>} />
         <Route path="/dashboard-home" element={<ProtectedRoute><DashboardHomePage /></ProtectedRoute>} />
-        <Route path="/data-review/audit-assignment/:id" element={<ProtectedRoute><DataReviewAuditAssignmentIdPage /></ProtectedRoute>} />
-        <Route path="/data-review/audit-assignment" element={<ProtectedRoute><DataReviewAuditAssignmentPage /></ProtectedRoute>} />
         <Route path="/data-review/contact-data/:id" element={<ProtectedRoute><ContactDataIdPage /></ProtectedRoute>} />
         <Route path="/data-review/contact-data" element={<ProtectedRoute><DataReviewContactDataPage /></ProtectedRoute>} />
         <Route path="/data-review/customer-data/:id" element={<ProtectedRoute><CustomersIdPage /></ProtectedRoute>} />
         <Route path="/data-review/customer-data" element={<ProtectedRoute><DataReviewCustomerDataPage /></ProtectedRoute>} />
+        <Route path="/data-review/customers/:id" element={<ProtectedRoute><CustomersIdPage /></ProtectedRoute>} />
         <Route path="/data-review/data-collector/:id" element={<ProtectedRoute><ThirdPartyIdPage /></ProtectedRoute>} />
         <Route path="/data-review/data-collector" element={<ProtectedRoute><DataReviewDataCollectorPage /></ProtectedRoute>} />
-        <Route path="/data-review/employees" element={<ProtectedRoute><DataReviewEmployeesPage /></ProtectedRoute>} />
         <Route path="/data-review/survey-data/:id" element={<ProtectedRoute><DataReviewSurveyDataIdPage /></ProtectedRoute>} />
         <Route path="/data-review/survey-data" element={<ProtectedRoute><DataReviewSurveyDataPage /></ProtectedRoute>} />
+        <Route path="/employee/add" element={<ProtectedRoute><AddEmployeePage /></ProtectedRoute>} />
         <Route path="/employee" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
         <Route path="/master/branches/add" element={<ProtectedRoute><MasterBranchesAddPage /></ProtectedRoute>} />
         <Route path="/master/branches/edit/:id" element={<ProtectedRoute><MasterBranchesEditIdPage /></ProtectedRoute>} />

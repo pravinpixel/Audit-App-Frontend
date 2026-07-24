@@ -55,13 +55,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const dataReviewItems = [
     {
-      icon: Users,
-      label: "Employee",
-      path: "/data-review/employees",
-      active: pathname?.startsWith("/data-review/employees"),
-      pendingCount: 3,
-    },
-    {
       icon: UserCheck,
       label: "Data collector",
       path: "/data-review/data-collector",
@@ -88,13 +81,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       path: "/data-review/survey-data",
       active: pathname?.startsWith("/data-review/survey-data"),
       pendingCount: 4,
-    },
-    {
-      icon: UserCog,
-      label: "Audit Assignment",
-      path: "/data-review/audit-assignment",
-      active: pathname?.startsWith("/data-review/audit-assignment"),
-      pendingCount: 0,
     },
   ]
 

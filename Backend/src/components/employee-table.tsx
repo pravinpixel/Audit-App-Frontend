@@ -3,7 +3,6 @@ import { ArrowUpDown, MoreVertical, Edit, Trash2, ShieldCheck } from "lucide-rea
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
-import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import type { Employee } from "@/types/employee"
@@ -95,15 +94,6 @@ export function EmployeeTable({ employees, onEdit, onDelete, onToggleStatus, onV
                   <ArrowUpDown className="h-3 w-3" />
                 </div>
               </TableHead>
-              <TableHead
-                className="font-semibold text-white cursor-pointer"
-                onClick={() => handleSort("profileStatus")}
-              >
-                <div className="flex items-center gap-1">
-                  Profile Status
-                  <ArrowUpDown className="h-3 w-3" />
-                </div>
-              </TableHead>
               <TableHead className="font-semibold text-white">App Status</TableHead>
               <TableHead className="font-semibold text-white text-center">Actions</TableHead>
             </TableRow>
@@ -111,7 +101,7 @@ export function EmployeeTable({ employees, onEdit, onDelete, onToggleStatus, onV
           <TableBody>
             {currentEmployees.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center text-gray-500 py-12">
+                <TableCell colSpan={7} className="text-center text-gray-500 py-12">
                   No employees found
                 </TableCell>
               </TableRow>
@@ -123,23 +113,6 @@ export function EmployeeTable({ employees, onEdit, onDelete, onToggleStatus, onV
                   <TableCell className="text-gray-600">{employee.mobile}</TableCell>
                   <TableCell className="text-gray-600">{employee.email}</TableCell>
                   <TableCell className="text-gray-900">{employee.department}</TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={employee.profileStatus === "Verified" ? "default" : "secondary"}
-                      className={
-                        employee.profileStatus === "Verified"
-                          ? "bg-green-100 text-green-700 hover:bg-green-100"
-                          : "bg-gray-100 text-gray-700 hover:bg-gray-100"
-                      }
-                    >
-                      <span className="flex items-center gap-1.5">
-                        {employee.profileStatus === "Verified" && (
-                          <span className="w-1.5 h-1.5 bg-green-600 rounded-full" />
-                        )}
-                        {employee.profileStatus}
-                      </span>
-                    </Badge>
-                  </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <Switch

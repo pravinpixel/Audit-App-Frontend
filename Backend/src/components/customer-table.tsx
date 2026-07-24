@@ -32,6 +32,7 @@ export function CustomerTable({
 }: CustomerTableProps) {
   const navigate = useNavigate()
   const location = useLocation()
+  const isDataReviewCustomerData = location.pathname.startsWith("/data-review/customer-data")
   const { toast } = useToast()
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
@@ -203,7 +204,7 @@ export function CustomerTable({
                       customer.status === "Verified" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"
                     }`}
                   >
-                    {customer.status}
+                    {isDataReviewCustomerData && customer.status !== "Verified" ? "Reverification" : customer.status}
                   </span>
                 </td>
                 <td className="px-4 py-3 text-sm">
